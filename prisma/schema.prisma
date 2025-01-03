@@ -10,8 +10,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -25,10 +25,11 @@ model User {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(cuid())
+  image       String
   name        String
   description String
-  price       Float
+  price       Int
   createdAt   DateTime @default(now())
 }
 

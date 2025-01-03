@@ -1,75 +1,56 @@
-// @ts-check
 import { Router } from "express";
 import { SignupSchema, SigninSchema } from "../types.js";
 import prisma from "../prisma.js";
 import { hash, compare } from "../bcrypt.js";
 import { generateToken, verifyToken } from "../jwt.js";
+import { router as productsRouter } from "./products.js";
+import { auth } from "../middleware/auth.js";
 
 export const router = Router();
 
 router.post("/signup", async (req, res) => {
-  const parsed = SignupSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json(parsed.error.flatten());
-    return;
-  }
-  const hashedPassword = await hash(parsed.data.password);
+  const data = await SignupSchema.parseAsync(req.body);
+
+  const hashedPassword = await hash(data.password);
   try {
     await prisma.user.create({
-      data: { ...parsed.data, password: hashedPassword },
+      data: { ...data, password: hashedPassword },
     });
-    res.json({ message: "Login Successful" });
+    res.json({ message: "User Created" });
   } catch (e) {
     res.status(400).json({ message: "User already exist" });
   }
 });
 
 router.post("/signin", async (req, res) => {
-  const parsed = SigninSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(403).json({ message: "Invalid username or password" });
-    return;
-  }
+  const data = await SigninSchema.parseAsync(req.body);
+
   const user = await prisma.user.findUnique({
-    where: { username: parsed.data.username },
-    select: { password: true, id: true },
+    where: { username: data.username },
+    select: { password: true, id: true, role: true },
   });
   if (!user) {
-    res.status(403).json({ message: "Invalid username or password" });
+    res.status(401).json({ message: "Invalid username or password" });
     return;
   }
-  const hashedPassword = await compare(user.password, parsed.data.password);
+  const hashedPassword = await compare(user.password, data.password);
 
   if (!hashedPassword) {
-    res.status(403).json({ message: "Invalid username or password" });
+    res.status(401).json({ message: "Invalid username or password" });
     return;
   }
   res.cookie("token", generateToken(user.id), {
     httpOnly: true,
   });
-  res.json({ message: "Login Successful" });
+  res.json(user);
   console.log(generateToken(user.id));
 });
 
-router.get("/users/@me", async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    res.status(403).json({ message: "Not aurthorised" });
-    return;
-  }
-  try {
-    const payload = verifyToken(token);
-    const sub = payload.sub;
-    const user = await prisma.user.findUnique({
-      where: { id: sub },
-    });
-    res.json(user);
-  } catch (e) {
-    res.status(403).json({ message: "Not aurthorised" });
-  }
+router.get("/users/@me", auth, async (req, res) => {
+  res.json(req.user);
 });
 
-router.post("/logout", async (req, res) => {
+router.post("/logout", auth, async (req, res) => {
   res
     .cookie("token", "", {
       httpOnly: true,
@@ -77,3 +58,5 @@ router.post("/logout", async (req, res) => {
     })
     .json({ mesage: "Logout Sucessful" });
 });
+
+router.use("/products", productsRouter);

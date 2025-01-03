@@ -1,0 +1,20 @@
+meta {
+  name: create product
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{BASE}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "image":"https://m.media-amazon.com/images/G/31/apparel/rcxgs/tile._CB483369979_.gif",
+    "name":"Nokia 3310",
+    "description":"ghatiya phone h mat lena",
+    "price":50000
+  }
+}

@@ -1,4 +1,4 @@
-import { z } from "Zod";
+import { z } from "zod";
 const UsernameSchema = z
   .string()
   .min(3)
@@ -26,4 +26,15 @@ export const SignupSchema = z.strictObject({
 export const SigninSchema = z.strictObject({
   username: z.string(),
   password: z.string(),
+});
+
+export const CreateProductSchema = z.strictObject({
+  image: z.string().url(),
+  name: z.string(),
+  description: z.string(),
+  price: z.coerce.number(),
+});
+
+export const DeleteProductSchema = z.strictObject({
+  id: z.string(),
 });
